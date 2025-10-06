@@ -1,0 +1,595 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evaluador de Crédito Asefimex</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; color: #333; margin: 0; padding: 20px; }
+        .container { max-width: 1100px; margin: auto; background: #fff; padding: 30px; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
+        h1 { text-align: center; color: #0056b3; }
+        h2 { color: #1d3557; border-bottom: 2px solid #007bff; padding-bottom: 5px; }
+        h3 { text-align: center; color: #0056b3; font-size: 20px; }
+        .form-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 20px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group2 { margin-bottom: 15px; position: relative; display: inline-block; }
+        .form-group2:hover .info-tooltip { display: block; }
+        .full-width { grid-column: 1 / -1; }
+        label { display: block; margin-bottom: 5px; font-weight: 600; color: #495057; }
+        input[type="text"], input[type="number"], select, textarea { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: #007bff; outline: none; }
+        button { background-color: #007bff; color: white; padding: 12px 20px; border: none; border-radius: 5px; cursor: pointer; font-size: 16px; font-weight: bold; transition: background-color 0.3s; }
+        button:hover { background-color: #0056b3; }
+        #resultados { margin-top: 20px; padding: 20px; border: 1px solid #ddd; border-radius: 5px; background-color: #f9f9f9; white-space: pre-wrap; word-wrap: break-word; font-family: "Courier New", Courier, monospace; }
+        #loader { display: none; text-align: center; margin-top: 20px; font-weight: bold; }
+        .info-tooltip {
+          display: none;
+          position: absolute;
+          background-color: #f9f9f9;
+          border: 1px solid #ccc;
+          padding: 5px;
+          border-radius: 5px;
+          z-index: 997; }
+        label { cursor: pointer; }
+        
+        /* --- ESTILOS MODIFICADOS PARA LA CABECERA --- */
+        .header-actions { display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #e9ecef; padding-bottom: 15px; margin-bottom: 15px; }
+        .user-section { display: flex; align-items: center; gap: 15px; }
+        #user-info { text-align: right; }
+        #user-info span { display: block; font-size: 0.9em; color: #6c757d; }
+        #user-info #user-name { font-weight: bold; color: #343a40; }
+        .logout-btn { background-color: #dc3545; color: white; padding: 8px 12px; font-size: 14px; }
+        .logout-btn:hover { background-color: #c82333; }
+        .admin-btn { background-color: #007bff; color: white; padding: 8px 12px; font-size: 14px; }
+        .admin-btn:hover { background-color: #002eff; }
+        img {max-width: 200px; max-height: auto; padding-left: 30px;}
+        .cuadro-flotante {
+            position: fixed; /* O 'sticky' para un comportamiento diferente */
+            top: 20px;      /* Distancia desde la parte superior */
+            right: 20px;     /* Distancia desde la parte derecha */
+            width: 90%;
+            max-width: 150px;   /* Ancho del cuadro */
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            font-size: 11px;
+            border-radius: 8px;
+            z-index: 998;  /* Asegura que esté sobre otros elementos */
+        }
+        .cuadro-flotante-izq {
+            position: fixed; /* O 'sticky' para un comportamiento diferente */
+            top: 20px;      /* Distancia desde la parte superior */
+            left: 20px;     /* Distancia desde la parte derecha */
+            width: 90%;
+            max-width: 150px;   /* Ancho del cuadro */
+            padding: 10px;
+            border: 1px solid #ccc;
+            background-color: #fff;
+            font-size: 11px;
+            border-radius: 8px;
+            z-index: 998;  /* Asegura que esté sobre otros elementos */
+        }
+        .popup {
+          display: none; /* Inicialmente oculto */
+          position: fixed;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          background-color: rgba(0, 0, 0, 0.6); /* Fondo semitransparente */
+          justify-content: center;
+          align-items: center;
+          z-index: 999;
+        }
+        .popup-contenido {
+          align-items: center;
+          justify-content: center;
+          background-color: #fff;
+          padding: 20px;
+          width: 50%;
+          height: auto;
+          left: 0;
+          top: 0;
+          border-radius: 8px;
+          text-align: center;
+          z-index: 1000;
+        }
+        .switch-container { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .switch { position: relative; display: inline-block; width: 35px; height: 12px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; }
+        .slider:before { position: absolute; content: ""; height: 10px; width: 10px; left: 4px; bottom: 1px; background-color: white; transition: .4s; }
+        input:checked + .slider { background-color: #007bff; }
+        input:focus + .slider { box-shadow: 0 0 2px #007bff; }
+        input:checked + .slider:before { transform: translateX(15px); }
+        .slider.round { border-radius: 10px; }
+        .slider.round:before { border-radius: 50%; }
+
+    </style>
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='favicon.ico') }}">
+</head>
+<body>
+    <div class="container">
+        <!-- CABECERA MODIFICADA PARA MOSTRAR INFO DEL USUARIO -->
+        <div class="header-actions">
+            <a href="https://www.asefimex.com">
+                <img src="https://www.asefimex.com/assets/img/logo_horizontal.png" alt="Logo Asefimex">
+            </a>
+            <h1>IAsefimex</h1>
+            <div class="user-section">
+                <div id="user-info">
+                    <span id="user-name"></span>
+                    <span id="user-email"></span>
+                    <span id="user-position"></span>
+                </div>
+            </div>
+        </div>
+        <div class="header-actions">
+            <!-- Contenedor para el boton de admin y cierre de sesion. Oculto por defecto. -->
+            <div id="admin-button-container" style="display:none;">
+                <a href="/admin"><button class="admin-btn">Panel Admin</button></a>
+            </div>
+            <button id="logoutBtn" class="logout-btn">Cerrar Sesión</button>
+        </div>
+        <h3>Cédula de Evaluacion de Crédito</h3>
+        <p>Evaluacion express de un prospecto a cliente para obtener una calificacion a considerar antes de ingresarlo al tren de credito</p>
+        <p>Deben llenarse TODOS los datos del formulario, si no se tiene alguna informacion considerar 'Sin datos' o Cero '0'</p>
+        
+        <div class="cuadro-flotante">
+            <h3>Parametros de Evaluacion</h3>
+            <p>
+                <strong>% Liquidación:</strong> 
+                {{ (settings.get('PORCENTAJE_LIQUIDACION', 0.66) * 100)|round(2) }}%
+            </p>
+            <p>
+                <strong>$ Confiable:</strong> 
+                ${{ settings.get('SOLVENCIA_ACEPTABLE_MONTO_MINIMO', 3000)|int }} MXN
+            </p>
+            <p>
+                <strong>% Confiable:</strong> 
+                {{ settings.get('SOLVENCIA_ACEPTABLE_PORCENTAJE_MINIMO', 20)|int }}%
+            </p>
+            <p>
+                <strong>Negativos:</strong> 
+                {{ settings.get('NEGATIVOS', "NO")}}
+            </p>
+            <div class="switch-container">
+                <label for="iaToggle"><b>Utilizar IA:</b></label>
+                <label class="switch">
+                    <input type="checkbox" id="iaToggle" checked>
+                    <span class="slider round"></span>
+                </label>
+            </div>
+            <p style="font-size: 10px;">Para paramentros de puntuacion solicitar a TI</p>
+        </div>
+        
+        <div class="cuadro-flotante-izq">
+            <h3>Tabla de evaluacion</h3>
+            <p>
+                <strong>Segun la FICO Score:</strong> 
+                <p>300 - 449 ➡ Muy Malo</p>
+                <p>449 - 579 ➡ Malo</p>
+                <p>580 - 669 ➡ Regular</p>
+                <p>670 - 779 ➡ Bueno</p>
+                <p>780 - 850 ➡ Excelente</p>
+            </p>
+            <p style="font-size: 10px;">Para consideraciones de credito contactar a Comite de Credito</p>
+        </div>
+        
+        <h2>Datos del Cliente</h2>
+        <div class="form-grid">
+            <div class="form-group">
+                <label for="nombre">Nombre Completo:</label>
+                <input type="text" id="nombre" required>
+            </div>
+
+            <div class="form-group">
+                <label for="edad">Edad:</label>
+                <input type="number" id="edad" min="18" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="genero">Genero:</label>
+                <select id="genero" name="genero">
+                    <option value="" disabled selected>-- Selecciona una opción --</option>
+                    <option value="Masculino">Masculino</option>
+                    <option value="Femenino">Femenino</option>
+                    <option value="Ambos">No especificar</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="estado_civil">Estado Civil:</label>
+                <select id="estado_civil" name="estado_civil">
+                    <option value="" disabled selected>-- Selecciona una opción --</option>
+                    <option value="Casado Bienes Separados">Casado Bienes Separados</option>
+                    <option value="Soltero">Soltero</option>
+                    <option value="Casado Bienes Mancomunados">Casado Bienes Mancomunados</option>
+                    <option value="Union Libre">Unión Libre</option>
+                    <option value="Viudo">Viudo</option>
+                    <option value="Divorciado">Divorciado</option>
+                    <option value="Separado">Separado</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="estado">Estado:</label>
+                <select id="estado" name="estado" required>
+                <option value="" disabled selected>-- Selecciona un estado --</option>
+                <option value="Aguascalientes">Aguascalientes</option>
+                <option value="Baja California">Baja California</option>
+                <option value="Baja California Sur">Baja California Sur</option>
+                <option value="Campeche">Campeche</option>
+                <option value="Coahuila">Coahuila</option>
+                <option value="Colima">Colima</option>
+                <option value="Chiapas">Chiapas</option>
+                <option value="Chihuahua">Chihuahua</option>
+                <option value="Ciudad de Mexico">Ciudad de México</option>
+                <option value="Durango">Durango</option>
+                <option value="Guanajuato">Guanajuato</option>
+                <option value="Guerrero">Guerrero</option>
+                <option value="Hidalgo">Hidalgo</option>
+                <option value="Jalisco">Jalisco</option>
+                <option value="Mexico">México</option>
+                <option value="Michoacan">Michoacán</option>
+                <option value="Morelos">Morelos</option>
+                <option value="Nayarit">Nayarit</option>
+                <option value="Nuevo Leon">Nuevo León</option>
+                <option value="Oaxaca">Oaxaca</option>
+                <option value="Puebla">Puebla</option>
+                <option value="Queretaro">Querétaro</option>
+                <option value="Quintana Roo">Quintana Roo</option>
+                <option value="San Luis Potosi">San Luis Potosí</option>
+                <option value="Sinaloa">Sinaloa</option>
+                <option value="Sonora">Sonora</option>
+                <option value="Tabasco">Tabasco</option>
+                <option value="Tamaulipas">Tamaulipas</option>
+                <option value="Tlaxcala">Tlaxcala</option>
+                <option value="Veracruz">Veracruz</option>
+                <option value="Yucatan">Yucatán</option>
+                <option value="Zacatecas">Zacatecas</option>
+            </select>
+            </div>
+            <div class="form-group">
+                <label for="sucursal">Sucursal:</label>
+                <select id="sucursal" name="sucursal" required>
+                  <option value="" disabled selected>-- Selecciona una sucursal --</option>
+                  <option value="ACAYUCAN VERACRUZ">ACAYUCAN VERACRUZ</option>
+                  <option value="AYUTLA DE LOS LIBRES, GUERRERO">AYUTLA DE LOS LIBRES, GUERRERO</option>
+                  <option value="BOCA DEL RIO, VERACRUZ">BOCA DEL RIO, VERACRUZ</option>
+                  <option value="CANCUN QUINTANA ROO">CANCUN QUINTANA ROO</option>
+                  <option value="CIUDAD DE MEXICO">CIUDAD DE MEXICO</option>
+                  <option value="CIUDAD DEL CARMEN CAMPECHE">CIUDAD DEL CARMEN CAMPECHE</option>
+                  <option value="COMITAN DE DOMINGUEZ, CHIAPAS">COMITAN DE DOMINGUEZ, CHIAPAS</option>
+                  <option value="CUAUTLA, MORELOS.">CUAUTLA, MORELOS.</option>
+                  <option value="ESCARCEGA CAMPECHE">ESCARCEGA CAMPECHE</option>
+                  <option value="FELIPE CARRILLO PUERTO, QUINTANA ROO.">FELIPE CARRILLO PUERTO, QUINTANA ROO.</option>
+                  <option value="GUADALAJARA, JALISCO">GUADALAJARA, JALISCO</option>
+                  <option value="IZÚCAR DE MATAMOROS, PUEBLA">IZÚCAR DE MATAMOROS, PUEBLA</option>
+                  <option value="JUCHITAN DE ZARAGOZA, OAXACA">JUCHITAN DE ZARAGOZA, OAXACA</option>
+                  <option value="MANZANILLO COLIMA">MANZANILLO COLIMA</option>
+                  <option value="MERIDA, YUCATAN">MERIDA, YUCATAN</option>
+                  <option value="OAXACA II">OAXACA II</option>
+                  <option value="OAXACA, OAXACA">OAXACA, OAXACA</option>
+                  <option value="OCOSINGO CHIAPAS">OCOSINGO CHIAPAS</option>
+                  <option value="PALENQUE CHIAPAS">PALENQUE CHIAPAS</option>
+                  <option value="PARAISO TABASCO">PARAISO TABASCO</option>
+                  <option value="PLAYA DEL CARMEN QROO">PLAYA DEL CARMEN QROO</option>
+                  <option value="PUEBLA">PUEBLA</option>
+                  <option value="PUERTO ESCONDIDO, OAXACA">PUERTO ESCONDIDO, OAXACA</option>
+                  <option value="SAN FRANCISCO DE CAMPECHE, CAMPECHE">SAN FRANCISCO DE CAMPECHE, CAMPECHE</option>
+                  <option value="SAN JOSE CHILTEPEC, OAXACA">SAN JOSE CHILTEPEC, OAXACA</option>
+                  <option value="SANTO DOMINGO TEHUANTEPEC, OAXACA.">SANTO DOMINGO TEHUANTEPEC, OAXACA.</option>
+                  <option value="TAPACHULA CHIAPAS">TAPACHULA CHIAPAS</option>
+                  <option value="TENOSIQUE, TABASCO">TENOSIQUE, TABASCO</option>
+                  <option value="TICUL, YUCATAN">TICUL, YUCATAN</option>
+                  <option value="TONALA, CHIAPAS">TONALA, CHIAPAS</option>
+                  <option value="TUXTLA GUTIERREZ, CHIAPAS">TUXTLA GUTIERREZ, CHIAPAS</option>
+                  <option value="URUAPAN, MICHOACAN">URUAPAN, MICHOACAN</option>
+                  <option value="VILLA HERMOSA TABASCO2">VILLA HERMOSA TABASCO2</option>
+                  <option value="VILLA LÁZARO CÁRDENAS, PUEBLA">VILLA LÁZARO CÁRDENAS, PUEBLA</option>
+                  <option value="VILLAHERMOSA, TABASCO">VILLAHERMOSA, TABASCO</option>
+                  <option value="PENDIENTE">PENDIENTE</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="municipio">Municipio: <span style="font-size: 10px;">(Donde reside el evaluado)</span></label>
+                <input type="text" id="municipio" required>
+            </div>
+            <div class="form-group">
+                <label for="ingresos">Ingresos Mensuales ($): <span style="font-size: 10px;">(Ingresos reportados como fijos)</span></label>
+                <input type="number" id="ingresos" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="egresos">Egresos Mensuales ($): <span style="font-size: 10px;">(Gastos, Hogar, Hijos, etc...)</span></label>
+                <input type="number" id="egresos" min="1" required>
+            </div>
+            <div class="form-group2">
+                <label for="reporte_credito">Reporte de Círculo de Crédito: <span style="font-size: 10px;">(Leer la tabla de evaluacion)</span></label>
+                <select id="reporte_credito" required>
+                    <option value="excelente">Excelente</option>
+                    <option value="bueno">Bueno</option>
+                    <option value="regular">Regular</option>
+                    <option value="malo_pequeno">Malo (con atrasos pequeños)</option>
+                    <option value="muy_malo">Malo (con atrasos grandes)</option>
+                    <option value="sin_historial">Sin historial</option>
+                </select>
+                <div class="info-tooltip" id="info">
+                    Malo = Pocos atrasos | Muy Malo = Grandes Atrasos.
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="producto">Producto:</label>
+                <select id="producto" required>
+                    <option value="c-movil">C-MOVIL</option>
+                    <option value="c-facil">C-FACIL</option>
+                    <option value="c-emprendedor nuevo">C-EMPRENDEDOR NUEVO</option>
+                    <option value="c-auto">C-AUTO</option>
+                    <option value="c-mototaxista">C-MOTOTAXISTA</option>
+                    <option value="c-especial">C-ESPECIAL</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="monto_credito">Monto de Crédito Solicitado ($): </label>
+                <input type="number" id="monto_credito" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="plazo_credito">Plazo (meses):</label>
+                <input type="number" id="plazo_credito" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="tasa">Tasa Interés (Anual %):</label>
+                <input type="number" id="tasa" min="1" required>
+            </div>
+            <div class="form-group">
+                <label for="permiso">Permiso (Marco Legal):</label>
+                <select id="permiso" required>
+                    <option value="si">Si</option>
+                    <option value="no">No</option>
+                    <option value="tramite">En Tramite</option>
+                    <option value="" disabled selected>--Selecciona una Opcion--</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="aval">Aval:</label>
+                <select id="aval" required>
+                    <option value="si">Si</option>
+                    <option value="no" selected>No</option>
+                </select>
+            </div>
+            <div class="form-group2">
+                <label for="reporte_credito_aval">Reporte de Círculo de Crédito del Aval:</label>
+                <select id="reporte_credito_aval" required>
+                    <option value="sin_aval" selected>Sin Dato</option>
+                    <option value="excelente">Excelente</option>
+                    <option value="bueno">Bueno</option>
+                    <option value="regular">Regular</option>
+                    <option value="malo">Malo (con atrasos pequeños)</option>
+                    <option value="muy_malo">Malo (con atrasos grandes)</option>
+                    <option value="sin_historial">Sin historial</option>
+                </select>
+                <div class="info-tooltip" id="info">
+                    Malo = Pocos atrasos | Muy Malo = Grandes Atrasos.
+                </div>
+            </div>
+            <div class="form-group">
+                <label for="relacion_aval">Relacion del Aval:</label>
+                <select id="relacion_aval" required>
+                    <option value="sin_aval" selected>Sin Dato</option>
+                    <option value="familiar">Familiar</option>
+                    <option value="amistad">Amistad</option>
+                    <option value="socio">Socio</option>
+                    <option value="conocido">Conocido</option>
+                    <option value="conyugue">Conyugue</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="garantia">Garantia:</label>
+                <select id="garantia" required>
+                    <option value="unidad_financiada">La unidad a financiar(C-MOVIL o C-MOTOTAXISTA)</option>
+                    <option value="garantia_prendaria" selected>Garantia Prendaria (otra unidad o articulo de valor similar)</option>
+                    <option value="sin_garantia" selected>Sin garantia</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label for="ingresos_extra">Ingresos Mensuales Extra: <span style="font-size: 10px;">(Negocio informal, Catalogo, etc.)</span></label>
+                <input type="number" id="ingresos_extra" required value="0">
+            </div>
+            <div class="form-group full-width">
+                <label for="otros_datos">Otros Datos Relevantes (estudios, giro, reportes, etc.):</label>
+                <textarea id="otros_datos" rows="4" placeholder="Ej: El cliente tiene un negocio estable de abarrotes desde hace 5 años y presenta estados de cuenta que lo comprueban. El Cliente presento un comprobante de ingresos, como un estado de cuenta bancario o recibos de nomina. El cliente da en garantia el 30% del monto a financiar" required></textarea>
+            </div>
+        </div>
+        <button type="button" id="evaluarBtn">Evaluar Cliente</button>
+
+        <div id="loader">Analizando perfil con IA, por favor espere...
+            <progress id="barraProgreso" max="100" value="0"></progress>
+        </div>
+        <div id="resultados"></div>
+        
+        <div id="miPopup" class="popup">
+          <div class="popup-contenido">
+            <img src="https://www.asefimex.com/assets/img/logo_horizontal.png" alt="Logo Asefimex">
+            <h2>¡Hola, Bienvenido a IAsefimex!</h2>
+            <p>Aqui podras hacer evaluaciones rapidas sobre tus clientes para conocer si el tipo de perfil del cliente es ideal o no segun los estandares de la empresa.</p>
+            <p>{{ settings.get('BIENVENIDA_ACTUALIZACION', "SIN ACTUALIZACIONES")}}</p>
+            <button id="cerrarPopup">Cerrar</button>
+          </div>
+        </div>
+        
+    </div>
+
+    <script>
+        window.onload = async function() {
+            const response = await fetch('/check-session');
+            const data = await response.json();
+            if (!data.logged_in) {
+                window.location.href = '/';
+            } else {
+                // Si la sesión está activa, obtenemos y mostramos la info del usuario
+                fetchAndDisplayUserInfo();
+            }
+        };
+        
+        // CAMBIO 3: Asignar los eventos desde el script
+        document.addEventListener('DOMContentLoaded', () => {
+            const evaluarButton = document.getElementById('evaluarBtn');
+            const logoutButton = document.getElementById('logoutBtn');
+
+            if (evaluarButton) {
+                evaluarButton.addEventListener('click', evaluarCliente);
+            }
+            if (logoutButton) {
+                logoutButton.addEventListener('click', logout);
+            }
+        });
+        
+        // FUNCIÓN MODIFICADA para mostrar nombre y correo
+        async function fetchAndDisplayUserInfo() {
+            try {
+                const response = await fetch('/get-user-info');
+                
+                // Si la respuesta no es OK (ej. 401 No Autorizado), redirigir al login
+                if (!response.ok) {
+                    window.location.href = '/';
+                    return;
+                }
+                
+                const data = await response.json();
+
+                if (data.name) {
+                    document.getElementById('user-name').innerText = data.name;
+                }
+                if (data.email) {
+                    document.getElementById('user-email').innerText = data.email;
+                }
+                if (data.position) {
+                    document.getElementById('user-position').innerText = data.position;
+                }
+                
+                // --- NUEVO: Lógica para mostrar el botón de admin ---
+                if (data.is_admin) {
+                    document.getElementById('admin-button-container').style.display = 'block';
+                }
+
+            } catch (error) {
+                console.error("Error al obtener la información del usuario:", error);
+                // Si hay un error de red o similar, es seguro redirigir también
+                window.location.href = '/';
+            }
+        }
+
+        async function evaluarCliente() {
+            
+            // --- Utilizar IA Switch ---
+            const usarIA = document.getElementById('iaToggle').checked ? "SI" : "NO";
+            
+            const data = {
+                nombre: document.getElementById('nombre').value,
+                edad: document.getElementById('edad').value,
+                genero: document.getElementById('genero').value,
+                estado_civil: document.getElementById('estado_civil').value,
+                estado: document.getElementById('estado').value,
+                sucursal: document.getElementById('sucursal').value,
+                municipio: document.getElementById('municipio').value,
+                ingresos: document.getElementById('ingresos').value,
+                egresos: document.getElementById('egresos').value,
+                reporte_credito: document.getElementById('reporte_credito').value,
+                producto: document.getElementById('producto').value,
+                monto_credito: document.getElementById('monto_credito').value,
+                plazo_credito: document.getElementById('plazo_credito').value,
+                tasa: document.getElementById('tasa').value,
+                permiso: document.getElementById('permiso').value,
+                aval: document.getElementById('aval').value,
+                reporte_credito_aval: document.getElementById('reporte_credito_aval').value,
+                relacion_aval: document.getElementById('relacion_aval').value,
+                garantia: document.getElementById('garantia').value,
+                ingresos_extra: document.getElementById('ingresos_extra').value,
+                otros_datos: document.getElementById('otros_datos').value,
+                utilizar_ia: usarIA
+            };
+
+            // Validación de campos clave
+            if (!data.nombre || !data.edad || !data.ingresos || !data.monto_credito) {
+                alert('Por favor, completa todos los campos obligatorios: Nombre, Edad, Ingresos y Monto de Crédito.');
+                return;
+            }
+
+            mostrarCargador(true);
+            try {
+                const response = await fetch('/evaluar-cliente', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(data)
+                });
+                const result = await response.json();
+                document.getElementById('resultados').innerText = result.analisis;
+            } catch (error) {
+                document.getElementById('resultados').innerText = 'Ocurrió un error al conectar con el servidor. Intenta de nuevo.';
+                console.error('Error:', error);
+            } finally {
+                mostrarCargador(false);
+            }
+        }
+
+        function mostrarCargador(mostrar) {
+            document.getElementById('loader').style.display = mostrar ? 'block' : 'none';
+            document.getElementById('resultados').style.display = mostrar ? 'none' : 'block';
+        }
+
+        async function logout() {
+            await fetch('/logout');
+            window.location.href = '/';
+        }
+        
+        setTimeout(function() {
+            var popup = document.getElementById("miPopup");
+            popup.style.display = "flex"; // Muestra el pop-up
+          }, 5000);
+        
+          var botonCerrar = document.getElementById("cerrarPopup");
+          botonCerrar.onclick = function() {
+            var popup = document.getElementById("miPopup");
+            popup.style.display = "none"; // Oculta el pop-up
+          };
+          
+        const barra = document.getElementById('barraProgreso');
+        const intervalo = setInterval(() => {
+          if (barra.value < 100) {
+            barra.value++;
+          } else {
+            clearInterval(intervalo);
+          }
+        }, 100); // Incrementa cada 100 milisegundos (para una barra más rápida)
+        
+        (function() {
+            const INACTIVITY_TIMEOUT_MS = 19.8 * 60 * 1000; // 19.8 minutos en milisegundos
+            let inactivityTimer;
+
+            function logoutUser() {
+                alert("Tu sesión ha expirado por inactividad. Serás redirigido a la página de inicio de sesión.");
+                window.location.href = '/logout'; 
+            }
+
+            function resetInactivityTimer() {
+                clearTimeout(inactivityTimer);
+                inactivityTimer = setTimeout(logoutUser, INACTIVITY_TIMEOUT_MS);
+            }
+
+            const activityEvents = ['mousemove', 'mousedown', 'keypress', 'touchmove', 'scroll'];
+
+            activityEvents.forEach(function(eventName) {
+                document.addEventListener(eventName, resetInactivityTimer, true);
+            });
+
+            resetInactivityTimer();
+        })();
+    </script>
+    <footer>
+        <br>
+        <span>Desarrollo interno de Asefimex (Mexico, 2025)</span>
+        <p>Los datos y calculos aqui mostrados son de uso informativo y requieren una verificacion final antes de hacer cualquier conclusion final o toma de decision.</p>
+        <p>La IA puede tener varianza en sus respuestas en un rango de +-0.5 por factores que requieren pulirse en conjunto con todo el equipo de Asefimex</p>
+    </footer>
+</body>
+</html>

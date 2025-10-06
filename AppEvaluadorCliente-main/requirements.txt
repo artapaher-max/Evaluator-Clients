@@ -1,0 +1,10 @@
+flask
+werkzeug
+python-dotenv
+google-generativeai
+gspread
+oauth2client
+pandas
+numpy
+numpy-financial
+flask-limiter
